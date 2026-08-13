@@ -12,7 +12,7 @@ const io = new Server(server);
 const PORT = process.env.PORT || 10000;
 
 // =====================================================
-// RENDER / PROXY CONFIGURATION
+// RENDER / PROXY
 // =====================================================
 
 app.set("trust proxy", 1);
@@ -47,7 +47,7 @@ app.use(
       httpOnly: true,
       sameSite: "lax",
 
-      // Important for Render
+      // Works correctly with Render
       secure: false,
 
       maxAge: 8 * 60 * 60 * 1000
@@ -56,24 +56,25 @@ app.use(
 );
 
 // =====================================================
-// STATIC FILES
 // NO PUBLIC FOLDER
+// Files are in the root of the repository
 // =====================================================
 
 app.use(express.static(__dirname));
 
 // =====================================================
-// IN-MEMORY DATA
+// DATA
 // =====================================================
 
 const exams = new Map();
 const students = new Map();
 
 // =====================================================
-// QUESTIONS
+// 30 CAPGEMINI ROUND 1 QUESTIONS
 // =====================================================
 
 const Q = [
+
   [
     "A data analyst has values 10,20,30,40,50. What is the mean?",
     ["20", "25", "30", "35"],
@@ -283,6 +284,7 @@ const Q = [
     ["₹120", "₹150", "₹180", "₹200"],
     1
   ]
+
 ].map(x => ({
   q: x[0],
   o: x[1],
@@ -294,7 +296,11 @@ const Q = [
 // =====================================================
 
 function teacher(req, res, next) {
-  if (req.session && req.session.teacher === true) {
+
+  if (
+    req.session &&
+    req.session.teacher === true
+  ) {
     return next();
   }
 
@@ -304,57 +310,73 @@ function teacher(req, res, next) {
 }
 
 // =====================================================
-// GENERATE EXAM CODE
+// EXAM CODE
 // =====================================================
 
 function generateExamCode() {
-  return crypto
-    .randomBytes(3)
-    .toString("hex")
-    .toUpperCase();
+
+  let examCode;
+
+  do {
+    examCode = crypto
+      .randomBytes(3)
+      .toString("hex")
+      .toUpperCase();
+  } while (exams.has(examCode));
+
+  return examCode;
 }
 
 // =====================================================
-// PUBLIC STUDENT INFORMATION
+// PUBLIC STUDENT DATA
 // =====================================================
 
-function publicStudent(s) {
+function publicStudent(student) {
+
   return {
-    id: s.id,
-    name: s.name,
-    code: s.code,
-    joinedAt: s.joinedAt,
-    camera: s.camera,
-    microphone: s.microphone,
-    submitted: s.submitted,
-    score: s.score,
-    lastSnapshot: s.lastSnapshot
+    id: student.id,
+    name: student.name,
+    code: student.code,
+    joinedAt: student.joinedAt,
+
+    camera: student.camera,
+    microphone: student.microphone,
+
+    submitted: student.submitted,
+    score: student.score,
+
+    lastSnapshot: student.lastSnapshot
   };
 }
 
 // =====================================================
-// HEALTH CHECK
+// HEALTH
 // =====================================================
 
 app.get("/api/health", (req, res) => {
+
   res.json({
     ok: true,
     service: "Capgemini Round 1 Mock Test",
     time: new Date().toISOString()
   });
+
 });
 
 // =====================================================
-// SESSION CHECK
+// TEACHER SESSION CHECK
 // =====================================================
 
 app.get("/api/teacher/session", (req, res) => {
+
   res.json({
-    loggedIn: !!(
-      req.session &&
-      req.session.teacher === true
-    )
+    loggedIn:
+      !!(
+        req.session &&
+        req.session.teacher === true
+      )
   });
+
 });
 
 // =====================================================
@@ -362,24 +384,29 @@ app.get("/api/teacher/session", (req, res) => {
 // =====================================================
 
 app.post("/api/teacher/login", (req, res) => {
-  const username = String(
-    req.body?.username || ""
-  ).trim();
 
-  const password = String(
-    req.body?.password || ""
-  );
+  const username =
+    String(req.body?.username || "").trim();
+
+  const password =
+    String(req.body?.password || "");
 
   if (
     username === TEACHER_USERNAME &&
     password === TEACHER_PASSWORD
   ) {
+
     req.session.teacher = true;
     req.session.username = username;
 
     return req.session.save(err => {
+
       if (err) {
-        console.error("Session save error:", err);
+
+        console.error(
+          "Session save error:",
+          err
+        );
 
         return res.status(500).json({
           error: "Could not create teacher session"
@@ -390,12 +417,14 @@ app.post("/api/teacher/login", (req, res) => {
         ok: true,
         message: "Teacher login successful"
       });
+
     });
   }
 
   return res.status(401).json({
     error: "Invalid username or password"
   });
+
 });
 
 // =====================================================
@@ -403,11 +432,15 @@ app.post("/api/teacher/login", (req, res) => {
 // =====================================================
 
 app.post("/api/teacher/logout", (req, res) => {
+
   req.session.destroy(err => {
+
     if (err) {
+
       return res.status(500).json({
         error: "Logout failed"
       });
+
     }
 
     res.clearCookie("connect.sid");
@@ -415,67 +448,142 @@ app.post("/api/teacher/logout", (req, res) => {
     return res.json({
       ok: true
     });
+
   });
+
 });
 
 // =====================================================
-// GET EXAMS
+// GET ALL EXAMS
 // =====================================================
 
-app.get("/api/exams", teacher, (req, res) => {
-  const result = [...exams.values()].map(e => ({
-    id: e.id,
-    code: e.code,
-    title: e.title,
-    duration: e.duration,
-    questionCount: e.questions.length,
-    active: e.active
-  }));
+app.get(
+  "/api/exams",
+  teacher,
+  (req, res) => {
 
-  res.json(result);
-});
+    const result =
+      [...exams.values()].map(exam => ({
+
+        id: exam.id,
+        code: exam.code,
+        title: exam.title,
+
+        duration: exam.duration,
+
+        questionCount:
+          exam.questions.length,
+
+        active: exam.active,
+
+        createdAt: exam.createdAt,
+
+        startedAt:
+          exam.startedAt || null
+
+      }));
+
+    res.json(result);
+
+  }
+);
 
 // =====================================================
 // CREATE EXAM
+// IMPORTANT:
+// NEW EXAM IS ACTIVE IMMEDIATELY
 // =====================================================
 
-app.post("/api/exams", teacher, (req, res) => {
-  const title = String(
-    req.body?.title || "Capgemini Round 1 Mock Test"
-  ).trim();
+app.post(
+  "/api/exams",
+  teacher,
+  (req, res) => {
 
-  const duration = Math.max(
-    1,
-    Math.min(
-      300,
-      Number(req.body?.duration || 120)
-    )
-  );
+    const title =
+      String(
+        req.body?.title ||
+        "Capgemini Round 1 Mock Test"
+      ).trim();
 
-  const exam = {
-    id: crypto.randomUUID(),
-    code: generateExamCode(),
-    title,
-    duration,
-    questions: Q,
-    active: false,
-    createdAt: Date.now()
-  };
+    const duration =
+      Math.max(
+        1,
+        Math.min(
+          300,
+          Number(
+            req.body?.duration || 120
+          )
+        )
+      );
 
-  exams.set(exam.code, exam);
+    const now = Date.now();
 
-  return res.json({
-    ok: true,
-    exam: {
-      id: exam.id,
-      code: exam.code,
-      title: exam.title,
-      duration: exam.duration,
-      questionCount: exam.questions.length,
-      active: exam.active
-    }
-  });
-});
+    const exam = {
+
+      id: crypto.randomUUID(),
+
+      code: generateExamCode(),
+
+      title,
+
+      duration,
+
+      questions: Q,
+
+      // ==========================================
+      // IMPORTANT CHANGE
+      // ==========================================
+
+      active: true,
+
+      createdAt: now,
+
+      startedAt: now
+
+    };
+
+    exams.set(
+      exam.code,
+      exam
+    );
+
+    // Tell connected clients
+    io.emit(
+      "exam-created",
+      {
+        code: exam.code,
+        title: exam.title,
+        duration: exam.duration
+      }
+    );
+
+    return res.json({
+
+      ok: true,
+
+      exam: {
+
+        id: exam.id,
+
+        code: exam.code,
+
+        title: exam.title,
+
+        duration: exam.duration,
+
+        questionCount:
+          exam.questions.length,
+
+        active: exam.active,
+
+        startedAt: exam.startedAt
+
+      }
+
+    });
+
+  }
+);
 
 // =====================================================
 // START EXAM
@@ -485,29 +593,47 @@ app.post(
   "/api/exams/:code/start",
   teacher,
   (req, res) => {
-    const code = String(
-      req.params.code || ""
-    ).toUpperCase();
 
-    const exam = exams.get(code);
+    const code =
+      String(
+        req.params.code || ""
+      ).toUpperCase();
+
+    const exam =
+      exams.get(code);
 
     if (!exam) {
+
       return res.status(404).json({
         error: "Exam not found"
       });
+
     }
 
     exam.active = true;
     exam.startedAt = Date.now();
 
-    io.emit("exam-started", {
-      code: exam.code
-    });
+    io.emit(
+      "exam-started",
+      {
+        code: exam.code,
+        startedAt: exam.startedAt
+      }
+    );
 
     return res.json({
+
       ok: true,
-      code: exam.code
+
+      code: exam.code,
+
+      active: true,
+
+      startedAt:
+        exam.startedAt
+
     });
+
   }
 );
 
@@ -519,27 +645,42 @@ app.post(
   "/api/exams/:code/stop",
   teacher,
   (req, res) => {
-    const code = String(
-      req.params.code || ""
-    ).toUpperCase();
 
-    const exam = exams.get(code);
+    const code =
+      String(
+        req.params.code || ""
+      ).toUpperCase();
+
+    const exam =
+      exams.get(code);
 
     if (!exam) {
+
       return res.status(404).json({
         error: "Exam not found"
       });
+
     }
 
     exam.active = false;
 
-    io.emit("exam-stopped", {
-      code: exam.code
-    });
+    io.emit(
+      "exam-stopped",
+      {
+        code: exam.code
+      }
+    );
 
     return res.json({
-      ok: true
+
+      ok: true,
+
+      code: exam.code,
+
+      active: false
+
     });
+
   }
 );
 
@@ -550,35 +691,52 @@ app.post(
 app.get(
   "/api/student/exam/:code",
   (req, res) => {
-    const code = String(
-      req.params.code || ""
-    ).toUpperCase();
 
-    const exam = exams.get(code);
+    const code =
+      String(
+        req.params.code || ""
+      ).toUpperCase();
+
+    const exam =
+      exams.get(code);
 
     if (!exam) {
+
       return res.status(404).json({
         error: "Invalid exam code"
       });
+
     }
 
     if (!exam.active) {
+
       return res.status(403).json({
-        error: "Exam has not been started"
+        error: "Exam is not active"
       });
+
     }
 
     return res.json({
+
       title: exam.title,
+
       code: exam.code,
+
       duration: exam.duration,
-      questions: exam.questions.map(
-        ({ q, o }) => ({
-          q,
-          o
-        })
-      )
+
+      startedAt:
+        exam.startedAt || null,
+
+      questions:
+        exam.questions.map(
+          ({ q, o }) => ({
+            q,
+            o
+          })
+        )
+
     });
+
   }
 );
 
@@ -589,56 +747,95 @@ app.get(
 app.post(
   "/api/student/join",
   (req, res) => {
-    const code = String(
-      req.body?.code || ""
-    ).toUpperCase();
 
-    const exam = exams.get(code);
+    const code =
+      String(
+        req.body?.code || ""
+      ).trim().toUpperCase();
+
+    const name =
+      String(
+        req.body?.name ||
+        "Student"
+      ).trim().slice(0, 80);
+
+    const exam =
+      exams.get(code);
 
     if (!exam) {
+
       return res.status(404).json({
         error: "Invalid exam code"
       });
+
     }
 
+    // ==========================================
+    // EXAM MUST BE ACTIVE
+    // ==========================================
+
     if (!exam.active) {
+
       return res.status(403).json({
         error: "Exam is not active"
       });
+
     }
 
     const student = {
+
       id: crypto.randomUUID(),
-      name: String(
-        req.body?.name || "Student"
-      ).slice(0, 80),
+
+      name,
 
       code: exam.code,
 
       joinedAt: Date.now(),
 
       camera: false,
+
       microphone: false,
 
       lastSnapshot: null,
 
       submitted: false,
+
       score: null
+
     };
 
-    students.set(student.id, student);
+    students.set(
+      student.id,
+      student
+    );
 
+    // Notify teacher dashboard
     io.emit(
       "student-update",
       publicStudent(student)
     );
 
     return res.json({
+
       ok: true,
-      studentId: student.id,
-      code: exam.code,
-      duration: exam.duration
+
+      studentId:
+        student.id,
+
+      code:
+        exam.code,
+
+      title:
+        exam.title,
+
+      duration:
+        exam.duration,
+
+      startedAt:
+        exam.startedAt
+
     });
+
   }
 );
 
@@ -650,9 +847,12 @@ app.get(
   "/api/teacher/students",
   teacher,
   (req, res) => {
+
     return res.json(
-      [...students.values()].map(publicStudent)
+      [...students.values()]
+        .map(publicStudent)
     );
+
   }
 );
 
@@ -663,18 +863,26 @@ app.get(
 app.post(
   "/api/student/status",
   (req, res) => {
-    const studentId = req.body?.studentId;
 
-    const student = students.get(studentId);
+    const studentId =
+      req.body?.studentId;
+
+    const student =
+      students.get(studentId);
 
     if (!student) {
+
       return res.status(404).json({
         error: "Student session not found"
       });
+
     }
 
-    student.camera = !!req.body.camera;
-    student.microphone = !!req.body.microphone;
+    student.camera =
+      !!req.body.camera;
+
+    student.microphone =
+      !!req.body.microphone;
 
     io.emit(
       "student-update",
@@ -684,6 +892,7 @@ app.post(
     return res.json({
       ok: true
     });
+
   }
 );
 
@@ -694,22 +903,29 @@ app.post(
 app.post(
   "/api/student/snapshot",
   (req, res) => {
-    const studentId = req.body?.studentId;
 
-    const student = students.get(studentId);
+    const studentId =
+      req.body?.studentId;
+
+    const student =
+      students.get(studentId);
 
     if (!student) {
+
       return res.status(404).json({
         error: "Student session not found"
       });
+
     }
 
     if (
       typeof req.body.image === "string" &&
       req.body.image.length < 180000
     ) {
+
       student.lastSnapshot =
         req.body.image;
+
     }
 
     student.camera = true;
@@ -722,6 +938,7 @@ app.post(
     return res.json({
       ok: true
     });
+
   }
 );
 
@@ -732,43 +949,73 @@ app.post(
 app.post(
   "/api/student/submit",
   (req, res) => {
-    const studentId = req.body?.studentId;
 
-    const student = students.get(studentId);
+    const studentId =
+      req.body?.studentId;
+
+    const student =
+      students.get(studentId);
 
     if (!student) {
+
       return res.status(404).json({
         error: "Session not found"
       });
+
     }
 
-    const exam = exams.get(student.code);
+    const exam =
+      exams.get(student.code);
 
     if (!exam) {
+
       return res.status(404).json({
         error: "Exam not found"
       });
+
+    }
+
+    if (student.submitted) {
+
+      return res.json({
+
+        ok: true,
+
+        score: student.score,
+
+        total:
+          exam.questions.length,
+
+        alreadySubmitted: true
+
+      });
+
     }
 
     const answers =
       req.body?.answers || {};
 
-    const score = exam.questions.reduce(
-      (total, question, index) => {
-        return (
-          total +
-          (
-            Number(answers[index]) ===
-            question.a
-              ? 1
-              : 0
-          )
-        );
-      },
-      0
-    );
+    const score =
+      exam.questions.reduce(
+        (total, question, index) => {
+
+          return (
+            total +
+            (
+              Number(
+                answers[index]
+              ) === question.a
+                ? 1
+                : 0
+            )
+          );
+
+        },
+        0
+      );
 
     student.submitted = true;
+
     student.score = score;
 
     io.emit(
@@ -777,60 +1024,102 @@ app.post(
     );
 
     return res.json({
+
       ok: true,
+
       score,
-      total: exam.questions.length
+
+      total:
+        exam.questions.length
+
     });
+
   }
 );
 
 // =====================================================
 // TEACHER PAGE
+// ROOT
 // =====================================================
 
-app.get("/", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "teacher.html")
-  );
-});
+app.get(
+  "/",
+  (req, res) => {
+
+    res.sendFile(
+      path.join(
+        __dirname,
+        "teacher.html"
+      )
+    );
+
+  }
+);
+
+// =====================================================
+// TEACHER PAGE
+// /teacher
+// =====================================================
+
+app.get(
+  "/teacher",
+  (req, res) => {
+
+    res.sendFile(
+      path.join(
+        __dirname,
+        "teacher.html"
+      )
+    );
+
+  }
+);
 
 // =====================================================
 // STUDENT PAGE
 // =====================================================
 
-app.get("/student", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "student.html")
-  );
-});
+app.get(
+  "/student",
+  (req, res) => {
 
-// =====================================================
-// OPTIONAL LOGIN PAGE ROUTE
-// =====================================================
+    res.sendFile(
+      path.join(
+        __dirname,
+        "student.html"
+      )
+    );
 
-app.get("/teacher", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "teacher.html")
-  );
-});
+  }
+);
 
 // =====================================================
 // SOCKET.IO
 // =====================================================
 
-io.on("connection", socket => {
-  console.log(
-    "Socket connected:",
-    socket.id
-  );
+io.on(
+  "connection",
+  socket => {
 
-  socket.on("disconnect", () => {
     console.log(
-      "Socket disconnected:",
+      "Socket connected:",
       socket.id
     );
-  });
-});
+
+    socket.on(
+      "disconnect",
+      () => {
+
+        console.log(
+          "Socket disconnected:",
+          socket.id
+        );
+
+      }
+    );
+
+  }
+);
 
 // =====================================================
 // ERROR HANDLER
@@ -838,11 +1127,16 @@ io.on("connection", socket => {
 
 app.use(
   (err, req, res, next) => {
-    console.error(err);
+
+    console.error(
+      "SERVER ERROR:",
+      err
+    );
 
     res.status(500).json({
       error: "Internal server error"
     });
+
   }
 );
 
@@ -850,12 +1144,18 @@ app.use(
 // START SERVER
 // =====================================================
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `Capgemini Round 1 server running on port ${PORT}`
-  );
+server.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
 
-  console.log(
-    `Teacher username: ${TEACHER_USERNAME}`
-  );
-});
+    console.log(
+      `Capgemini Round 1 server running on port ${PORT}`
+    );
+
+    console.log(
+      `Teacher username: ${TEACHER_USERNAME}`
+    );
+
+  }
+);
