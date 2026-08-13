@@ -1,7 +1,7 @@
 const express=require("express"),http=require("http"),session=require("express-session"),{Server}=require("socket.io"),path=require("path"),crypto=require("crypto");
 const app=express(),server=http.createServer(app),io=new Server(server),PORT=process.env.PORT||10000;
 const TU=process.env.TEACHER_USERNAME||"teacher",TP=process.env.TEACHER_PASSWORD||"Capgemini@123";
-app.use(express.json({limit:"2mb"})); app.use(session({secret:process.env.SESSION_SECRET||"change-this-secret",resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",maxAge:28800000}})); app.use(express.static(path.join(__dirname,"public")));
+app.use(express.json({limit:"2mb"})); app.use(session({secret:process.env.SESSION_SECRET||"change-this-secret",resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",maxAge:28800000}})); app.use(express.static(__dirname));
 const exams=new Map(),students=new Map();
 const Q=[
 ["A data analyst has values 10,20,30,40,50. What is the mean?",["20","25","30","35"],2],
@@ -51,5 +51,11 @@ app.get("/api/teacher/students",teacher,(q,r)=>r.json([...students.values()].map
 app.post("/api/student/status",(q,r)=>{let s=students.get(q.body.studentId);if(!s)return r.status(404).json({error:"Student session not found"});s.camera=!!q.body.camera;s.microphone=!!q.body.microphone;io.emit("student-update",pub(s));r.json({ok:true})});
 app.post("/api/student/snapshot",(q,r)=>{let s=students.get(q.body.studentId);if(!s)return r.status(404).json({error:"Student session not found"});if(typeof q.body.image==="string"&&q.body.image.length<180000)s.lastSnapshot=q.body.image;s.camera=true;io.emit("student-update",pub(s));r.json({ok:true})});
 app.post("/api/student/submit",(q,r)=>{let s=students.get(q.body.studentId),e=s&&exams.get(s.code);if(!e)return r.status(404).json({error:"Session not found"});let score=e.questions.reduce((n,x,i)=>n+(Number(q.body.answers?.[i])===x.a?1:0),0);s.submitted=true;s.score=score;io.emit("student-update",pub(s));r.json({ok:true,score,total:e.questions.length})});
-app.get("/",(q,r)=>r.sendFile(path.join(__dirname,"public","teacher.html")));app.get("/student",(q,r)=>r.sendFile(path.join(__dirname,"public","student.html")));
+app.get("/", (q, r) => {
+  r.sendFile(path.join(__dirname, "teacher.html"));
+});
+
+app.get("/student", (q, r) => {
+  r.sendFile(path.join(__dirname, "student.html"));
+});
 server.listen(PORT,()=>console.log("Capgemini Round 1 server running on "+PORT));
