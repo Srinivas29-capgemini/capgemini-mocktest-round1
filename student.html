@@ -1,16 +1,961 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Capgemini Round 1 Student</title><style>
-body{font-family:Arial;background:#f4f7fb;margin:0;color:#172033}header{background:#132b4f;color:#fff;padding:20px;font-size:22px}main{max-width:900px;margin:25px auto;padding:15px}.card{background:#fff;padding:22px;margin:18px 0;border-radius:14px;box-shadow:0 4px 15px #0001}input,button{padding:12px;border-radius:8px;border:1px solid #ccd5e0}button{background:#1769e0;color:#fff;border:0;font-weight:bold;cursor:pointer}.hidden{display:none}.timer{position:sticky;top:0;background:#fff;padding:12px;font-size:25px;font-weight:bold;z-index:5}.q{border:1px solid #ddd;border-radius:10px;padding:15px;margin:12px 0}.q label{display:block;padding:8px}video{width:300px;border-radius:10px;background:#111}</style></head><body><header>Capgemini Round 1 Mock Test</header><main>
-<div id="join" class="card"><h2>Join Exam</h2><input id="name" placeholder="Student name" style="width:100%;box-sizing:border-box;margin:5px 0"><input id="code" placeholder="Exam code" style="width:100%;box-sizing:border-box;margin:5px 0"><button onclick="join()">Join</button><p id="msg"></p></div>
-<div id="perm" class="card hidden"><h2>Camera & Microphone Check</h2><p>Allow camera and microphone access.</p><video id="vid" autoplay muted playsinline></video><br><button onclick="begin()">Start Test</button><p id="pm"></p></div>
-<div id="exam" class="hidden"><div class="timer">Time remaining: <span id="t">--:--</span></div><div class="card"><h2 id="et"></h2><p id="ei"></p><div id="qs"></div><button onclick="submitTest()" style="width:100%">Submit Exam</button></div></div>
-<div id="done" class="card hidden"><h2>Exam Submitted</h2><p id="result"></p></div></main>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Capgemini Round 1 Mock Test</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #172033;
+}
+
+header {
+    background: #132b4f;
+    color: white;
+    padding: 25px;
+    font-size: 28px;
+}
+
+main {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    padding: 30px;
+    margin-bottom: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.08);
+}
+
+input {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: 1px solid #ccd5e0;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+button {
+    padding: 14px 22px;
+    border: none;
+    border-radius: 8px;
+    background: #1769e0;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0f55bb;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.timer {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+
+.question {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.question label {
+    display: block;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.question label:hover {
+    background: #f4f7fb;
+}
+
+video {
+    width: 350px;
+    max-width: 100%;
+    background: #111;
+    border-radius: 12px;
+}
+
+.success {
+    color: green;
+    font-weight: bold;
+}
+
+.error {
+    color: #c62828;
+    font-weight: bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    Capgemini Round 1 Mock Test
+</header>
+
+<main>
+
+<!-- JOIN -->
+
+<div id="joinCard" class="card">
+
+    <h2>Join Exam</h2>
+
+    <input
+        id="studentName"
+        placeholder="Student name"
+    >
+
+    <input
+        id="examCode"
+        placeholder="Exam code"
+    >
+
+    <button id="joinButton">
+        Join Exam
+    </button>
+
+    <p id="joinMessage"></p>
+
+</div>
+
+
+<!-- CAMERA -->
+
+<div id="permissionCard" class="card hidden">
+
+    <h2>Camera & Microphone Check</h2>
+
+    <p>
+        Camera and microphone access is required
+        before starting the test.
+    </p>
+
+    <video
+        id="cameraVideo"
+        autoplay
+        muted
+        playsinline>
+    </video>
+
+    <br><br>
+
+    <button id="startTestButton">
+        Start Test
+    </button>
+
+    <p id="permissionMessage"></p>
+
+</div>
+
+
+<!-- EXAM -->
+
+<div id="examSection" class="hidden">
+
+    <div class="timer">
+        Time remaining:
+        <span id="timer">
+            120:00
+        </span>
+    </div>
+
+    <div class="card">
+
+        <h2 id="examTitle"></h2>
+
+        <p id="examInfo"></p>
+
+        <div id="questions"></div>
+
+        <button
+            id="submitButton"
+            style="width:100%;margin-top:20px;">
+            Submit Exam
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- RESULT -->
+
+<div id="resultCard" class="card hidden">
+
+    <h2>Exam Submitted</h2>
+
+    <p id="resultText"></p>
+
+</div>
+
+</main>
+
+
 <script>
-let sid,data,stream,interval,seconds,submitted=false;let c=new URLSearchParams(location.search).get("code");if(c)code.value=c.toUpperCase();
-async function join(){let r=await fetch("/api/student/join",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.value,code:code.value.toUpperCase()})}),d=await r.json();if(!r.ok){msg.textContent=d.error;return}sid=d.studentId;let x=await fetch("/api/student/exam/"+d.code);data=await x.json();join.classList.add("hidden");perm.classList.remove("hidden");try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});vid.srcObject=stream;await status(true,true);pm.textContent="Camera and microphone ready."}catch(e){pm.textContent="Please allow camera and microphone.";await status(false,false)}}
-async function status(camera,microphone){await fetch("/api/student/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({studentId:sid,camera,microphone})})}
-function begin(){if(!stream)return alert("Allow camera and microphone first.");perm.classList.add("hidden");exam.classList.remove("hidden");et.textContent=data.title;ei.textContent=data.questions.length+" MCQs · "+data.duration+" minutes";qs.innerHTML=data.questions.map((q,i)=>`<div class=q><b>${i+1}. ${esc(q.q)}</b>${q.o.map((o,j)=>`<label><input type=radio name=q${i} value=${j}> ${esc(o)}</label>`).join("")}</div>`).join("");seconds=data.duration*60;tick();interval=setInterval(tick,1000);setInterval(snapshot,2500)}
-function tick(){let m=Math.floor(seconds/60),s=seconds%60;t.textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");if(seconds--<=0)submitTest()}
-async function snapshot(){if(!stream||!sid)return;let canvas=document.createElement("canvas");canvas.width=560;canvas.height=350;canvas.getContext("2d").drawImage(vid,0,0,560,350);await fetch("/api/student/snapshot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({studentId:sid,image:canvas.toDataURL("image/jpeg",.55)})})}
-async function submitTest(){if(submitted)return;submitted=true;clearInterval(interval);let a=data.questions.map((_,i)=>{let x=document.querySelector("input[name=q"+i+"]:checked");return x?+x.value:-1});let r=await fetch("/api/student/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({studentId:sid,answers:a})}),d=await r.json();if(stream)stream.getTracks().forEach(x=>x.stop());exam.classList.add("hidden");done.classList.remove("hidden");result.textContent="Your score: "+d.score+" / "+d.total}
-function esc(x){return x.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
-</script></body></html>
+
+let studentId = null;
+let examData = null;
+let mediaStream = null;
+let timerInterval = null;
+let snapshotInterval = null;
+let secondsRemaining = 0;
+let submitted = false;
+
+
+// =====================================================
+// ELEMENTS
+// =====================================================
+
+const joinCard =
+    document.getElementById("joinCard");
+
+const studentName =
+    document.getElementById("studentName");
+
+const examCode =
+    document.getElementById("examCode");
+
+const joinButton =
+    document.getElementById("joinButton");
+
+const joinMessage =
+    document.getElementById("joinMessage");
+
+const permissionCard =
+    document.getElementById("permissionCard");
+
+const cameraVideo =
+    document.getElementById("cameraVideo");
+
+const startTestButton =
+    document.getElementById("startTestButton");
+
+const permissionMessage =
+    document.getElementById("permissionMessage");
+
+const examSection =
+    document.getElementById("examSection");
+
+const examTitle =
+    document.getElementById("examTitle");
+
+const examInfo =
+    document.getElementById("examInfo");
+
+const questions =
+    document.getElementById("questions");
+
+const timer =
+    document.getElementById("timer");
+
+const submitButton =
+    document.getElementById("submitButton");
+
+const resultCard =
+    document.getElementById("resultCard");
+
+const resultText =
+    document.getElementById("resultText");
+
+
+// =====================================================
+// AUTO READ CODE FROM URL
+// =====================================================
+
+const urlCode =
+    new URLSearchParams(
+        window.location.search
+    ).get("code");
+
+if (urlCode) {
+
+    examCode.value =
+        urlCode
+        .trim()
+        .toUpperCase();
+
+}
+
+
+// =====================================================
+// JOIN EXAM
+// =====================================================
+
+joinButton.addEventListener(
+    "click",
+    joinExam
+);
+
+async function joinExam() {
+
+    joinMessage.textContent = "";
+    joinMessage.className = "";
+
+    const name =
+        studentName.value.trim();
+
+    const code =
+        examCode.value
+        .trim()
+        .toUpperCase();
+
+    if (!name) {
+
+        joinMessage.textContent =
+            "Please enter your name.";
+
+        joinMessage.className =
+            "error";
+
+        return;
+    }
+
+    if (!code) {
+
+        joinMessage.textContent =
+            "Please enter the exam code.";
+
+        joinMessage.className =
+            "error";
+
+        return;
+    }
+
+    joinButton.disabled = true;
+    joinButton.textContent =
+        "Joining...";
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/student/join",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            name,
+                            code
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to join exam"
+            );
+        }
+
+        studentId =
+            data.studentId;
+
+        // Load exam questions
+
+        const examResponse =
+            await fetch(
+                "/api/student/exam/" +
+                encodeURIComponent(
+                    data.code
+                )
+            );
+
+        const exam =
+            await examResponse.json();
+
+        if (!examResponse.ok) {
+
+            throw new Error(
+                exam.error ||
+                "Unable to load exam"
+            );
+        }
+
+        examData = exam;
+
+        joinCard.classList.add(
+            "hidden"
+        );
+
+        permissionCard.classList.remove(
+            "hidden"
+        );
+
+        await requestCamera();
+
+    } catch (error) {
+
+        console.error(error);
+
+        joinMessage.textContent =
+            error.message;
+
+        joinMessage.className =
+            "error";
+
+        joinButton.disabled = false;
+
+        joinButton.textContent =
+            "Join Exam";
+    }
+
+}
+
+
+// =====================================================
+// CAMERA + MICROPHONE
+// =====================================================
+
+async function requestCamera() {
+
+    try {
+
+        mediaStream =
+            await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+
+        cameraVideo.srcObject =
+            mediaStream;
+
+        await updateStatus(
+            true,
+            true
+        );
+
+        permissionMessage.textContent =
+            "Camera and microphone are ready.";
+
+        permissionMessage.className =
+            "success";
+
+    } catch (error) {
+
+        console.error(error);
+
+        permissionMessage.textContent =
+            "Please allow camera and microphone access.";
+
+        permissionMessage.className =
+            "error";
+
+        await updateStatus(
+            false,
+            false
+        );
+    }
+
+}
+
+
+// =====================================================
+// STATUS
+// =====================================================
+
+async function updateStatus(
+    camera,
+    microphone
+) {
+
+    if (!studentId) {
+        return;
+    }
+
+    try {
+
+        await fetch(
+            "/api/student/status",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify({
+                        studentId,
+                        camera,
+                        microphone
+                    })
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Status error:",
+            error
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// START TEST
+// =====================================================
+
+startTestButton.addEventListener(
+    "click",
+    startTest
+);
+
+function startTest() {
+
+    if (!mediaStream) {
+
+        alert(
+            "Please allow camera and microphone access first."
+        );
+
+        return;
+    }
+
+    permissionCard.classList.add(
+        "hidden"
+    );
+
+    examSection.classList.remove(
+        "hidden"
+    );
+
+    examTitle.textContent =
+        examData.title;
+
+    examInfo.textContent =
+        examData.questions.length +
+        " MCQs • " +
+        examData.duration +
+        " minutes";
+
+    renderQuestions();
+
+    secondsRemaining =
+        examData.duration * 60;
+
+    updateTimer();
+
+    timerInterval =
+        setInterval(
+            updateTimer,
+            1000
+        );
+
+    snapshotInterval =
+        setInterval(
+            sendSnapshot,
+            5000
+        );
+
+}
+
+
+// =====================================================
+// QUESTIONS
+// =====================================================
+
+function renderQuestions() {
+
+    questions.innerHTML = "";
+
+    examData.questions.forEach(
+        (question, index) => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "question";
+
+            const heading =
+                document.createElement(
+                    "div"
+                );
+
+            heading.innerHTML =
+                "<strong>" +
+                (index + 1) +
+                ". " +
+                escapeHtml(
+                    question.q
+                ) +
+                "</strong>";
+
+            div.appendChild(
+                heading
+            );
+
+            question.o.forEach(
+                (option, optionIndex) => {
+
+                    const label =
+                        document.createElement(
+                            "label"
+                        );
+
+                    const radio =
+                        document.createElement(
+                            "input"
+                        );
+
+                    radio.type =
+                        "radio";
+
+                    radio.name =
+                        "question-" +
+                        index;
+
+                    radio.value =
+                        optionIndex;
+
+                    label.appendChild(
+                        radio
+                    );
+
+                    label.appendChild(
+                        document.createTextNode(
+                            " " +
+                            option
+                        )
+                    );
+
+                    div.appendChild(
+                        label
+                    );
+
+                }
+            );
+
+            questions.appendChild(
+                div
+            );
+
+        }
+    );
+
+}
+
+
+// =====================================================
+// TIMER
+// =====================================================
+
+function updateTimer() {
+
+    const minutes =
+        Math.floor(
+            secondsRemaining / 60
+        );
+
+    const seconds =
+        secondsRemaining % 60;
+
+    timer.textContent =
+        String(minutes)
+        .padStart(2, "0") +
+        ":" +
+        String(seconds)
+        .padStart(2, "0");
+
+    if (
+        secondsRemaining <= 0
+    ) {
+
+        clearInterval(
+            timerInterval
+        );
+
+        submitExam();
+
+        return;
+    }
+
+    secondsRemaining--;
+
+}
+
+
+// =====================================================
+// WEBCAM SNAPSHOT
+// =====================================================
+
+async function sendSnapshot() {
+
+    if (
+        !mediaStream ||
+        !studentId
+    ) {
+        return;
+    }
+
+    try {
+
+        const canvas =
+            document.createElement(
+                "canvas"
+            );
+
+        canvas.width = 560;
+        canvas.height = 350;
+
+        const context =
+            canvas.getContext("2d");
+
+        context.drawImage(
+            cameraVideo,
+            0,
+            0,
+            560,
+            350
+        );
+
+        const image =
+            canvas.toDataURL(
+                "image/jpeg",
+                0.45
+            );
+
+        await fetch(
+            "/api/student/snapshot",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify({
+                        studentId,
+                        image
+                    })
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Snapshot error:",
+            error
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// SUBMIT
+// =====================================================
+
+submitButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            confirm(
+                "Are you sure you want to submit the exam?"
+            )
+        ) {
+
+            submitExam();
+
+        }
+
+    }
+);
+
+
+async function submitExam() {
+
+    if (submitted) {
+        return;
+    }
+
+    submitted = true;
+
+    clearInterval(
+        timerInterval
+    );
+
+    clearInterval(
+        snapshotInterval
+    );
+
+    submitButton.disabled =
+        true;
+
+    const answers =
+        examData.questions.map(
+            (_, index) => {
+
+                const selected =
+                    document.querySelector(
+                        'input[name="question-' +
+                        index +
+                        '"]:checked'
+                    );
+
+                return selected
+                    ? Number(
+                        selected.value
+                    )
+                    : -1;
+            }
+        );
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/student/submit",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            studentId,
+                            answers
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Submission failed"
+            );
+        }
+
+        if (mediaStream) {
+
+            mediaStream
+                .getTracks()
+                .forEach(
+                    track =>
+                        track.stop()
+                );
+
+        }
+
+        examSection.classList.add(
+            "hidden"
+        );
+
+        resultCard.classList.remove(
+            "hidden"
+        );
+
+        resultText.textContent =
+            "Your score: " +
+            data.score +
+            " / " +
+            data.total;
+
+    } catch (error) {
+
+        console.error(error);
+
+        submitted = false;
+
+        submitButton.disabled =
+            false;
+
+        alert(
+            error.message
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// ESCAPE HTML
+// =====================================================
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(
+            /[&<>"']/g,
+            character => {
+
+                const map = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#039;"
+                };
+
+                return map[character];
+
+            }
+        );
+
+}
+
+</script>
+
+</body>
+</html>
