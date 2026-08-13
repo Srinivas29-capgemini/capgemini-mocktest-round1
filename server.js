@@ -12,13 +12,7 @@ const io = new Server(server);
 const PORT = process.env.PORT || 10000;
 
 // =====================================================
-// RENDER / PROXY
-// =====================================================
-
-app.set("trust proxy", 1);
-
-// =====================================================
-// TEACHER LOGIN
+// CONFIG
 // =====================================================
 
 const TEACHER_USERNAME =
@@ -29,13 +23,19 @@ const TEACHER_PASSWORD =
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET ||
-  "capgemini-round1-session-secret-2026";
+  "capgemini-round1-secret-2026";
 
 // =====================================================
 // MIDDLEWARE
 // =====================================================
 
-app.use(express.json({ limit: "2mb" }));
+app.set("trust proxy", 1);
+
+app.use(
+  express.json({
+    limit: "2mb"
+  })
+);
 
 app.use(
   session({
@@ -46,21 +46,22 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-
-      // Works correctly with Render
       secure: false,
-
       maxAge: 8 * 60 * 60 * 1000
     }
   })
 );
 
 // =====================================================
+// ROOT STATIC FILES
 // NO PUBLIC FOLDER
-// Files are in the root of the repository
 // =====================================================
 
-app.use(express.static(__dirname));
+app.use(
+  express.static(__dirname, {
+    index: false
+  })
+);
 
 // =====================================================
 // DATA
@@ -70,232 +71,202 @@ const exams = new Map();
 const students = new Map();
 
 // =====================================================
-// 30 CAPGEMINI ROUND 1 QUESTIONS
+// QUESTIONS
 // =====================================================
 
-const Q = [
-
-  [
-    "A data analyst has values 10,20,30,40,50. What is the mean?",
-    ["20", "25", "30", "35"],
-    2
-  ],
-
-  [
-    "Which SQL clause filters grouped results?",
-    ["WHERE", "HAVING", "ORDER BY", "GROUP BY"],
-    1
-  ],
-
-  [
-    "What does INNER JOIN return?",
-    [
+const QUESTIONS = [
+  {
+    q: "A data analyst has values 10,20,30,40,50. What is the mean?",
+    o: ["20", "25", "30", "35"],
+    a: 2
+  },
+  {
+    q: "Which SQL clause filters grouped results?",
+    o: ["WHERE", "HAVING", "ORDER BY", "GROUP BY"],
+    a: 1
+  },
+  {
+    q: "What does INNER JOIN return?",
+    o: [
       "All left rows",
       "All right rows",
       "Matching rows from both tables",
       "Duplicate rows only"
     ],
-    2
-  ],
-
-  [
-    "₹800 cost and ₹920 selling price. Profit percentage?",
-    ["10%", "12%", "15%", "20%"],
-    2
-  ],
-
-  [
-    "Next number: 2,6,12,20,30,?",
-    ["36", "40", "42", "44"],
-    2
-  ],
-
-  [
-    "Which Python library is commonly used for tabular data?",
-    ["Pandas", "Flask", "Requests", "PyGame"],
-    0
-  ],
-
-  [
-    "Which measure is least affected by outliers?",
-    ["Mean", "Median", "Variance", "Range"],
-    1
-  ],
-
-  [
-    "180 km in 3 hours gives average speed?",
-    ["50", "60", "70", "90"],
-    1
-  ],
-
-  [
-    "SQL command to remove rows?",
-    ["DROP", "DELETE", "REMOVE", "CLEAR"],
-    1
-  ],
-
-  [
-    "Probability of a head on one fair coin toss?",
-    ["0", "1/4", "1/2", "1"],
-    2
-  ],
-
-  [
-    "Chart commonly used to show a trend over time?",
-    ["Line", "Pie", "Table", "Gauge"],
-    0
-  ],
-
-  [
-    "Normalization mainly reduces?",
-    ["Redundancy", "Security", "Charts", "Queries"],
-    0
-  ],
-
-  [
-    "5 workers take 12 days. 10 workers take?",
-    ["3", "5", "6", "24"],
-    2
-  ],
-
-  [
-    "Which is supervised learning?",
-    [
+    a: 2
+  },
+  {
+    q: "₹800 cost and ₹920 selling price. Profit percentage?",
+    o: ["10%", "12%", "15%", "20%"],
+    a: 2
+  },
+  {
+    q: "Next number: 2,6,12,20,30,?",
+    o: ["36", "40", "42", "44"],
+    a: 2
+  },
+  {
+    q: "Which Python library is commonly used for tabular data?",
+    o: ["Pandas", "Flask", "Requests", "PyGame"],
+    a: 0
+  },
+  {
+    q: "Which measure is least affected by outliers?",
+    o: ["Mean", "Median", "Variance", "Range"],
+    a: 1
+  },
+  {
+    q: "180 km in 3 hours gives average speed?",
+    o: ["50", "60", "70", "90"],
+    a: 1
+  },
+  {
+    q: "SQL command to remove rows?",
+    o: ["DROP", "DELETE", "REMOVE", "CLEAR"],
+    a: 1
+  },
+  {
+    q: "Probability of a head on one fair coin toss?",
+    o: ["0", "1/4", "1/2", "1"],
+    a: 2
+  },
+  {
+    q: "Chart commonly used to show a trend over time?",
+    o: ["Line", "Pie", "Table", "Gauge"],
+    a: 0
+  },
+  {
+    q: "Normalization mainly reduces?",
+    o: ["Redundancy", "Security", "Charts", "Queries"],
+    a: 0
+  },
+  {
+    q: "5 workers take 12 days. 10 workers take?",
+    o: ["3", "5", "6", "24"],
+    a: 2
+  },
+  {
+    q: "Which is supervised learning?",
+    o: [
       "Labeled churn prediction",
       "Unlabeled grouping",
       "PCA",
       "Association rules"
     ],
-    0
-  ],
-
-  [
-    "CSV commonly means?",
-    [
+    a: 0
+  },
+  {
+    q: "CSV commonly means?",
+    o: [
       "Common System Variable",
       "Comma-Separated Values",
       "Column Storage Version",
       "Central Source View"
     ],
-    1
-  ],
-
-  [
-    "SQL function to count rows?",
-    ["SUM()", "COUNT()", "TOTAL()", "ROWS()"],
-    1
-  ],
-
-  [
-    "Ratio 2:3, total 50. Larger part?",
-    ["20", "25", "30", "35"],
-    2
-  ],
-
-  [
-    "A yes/no value is commonly a?",
-    ["Boolean", "Float", "Array", "Character"],
-    0
-  ],
-
-  [
-    "Median of 3,7,9,12,15?",
-    ["7", "9", "10", "12"],
-    1
-  ],
-
-  [
-    "SQL clause used for sorting?",
-    ["SORT", "ORDER BY", "GROUP", "ARRANGE"],
-    1
-  ],
-
-  [
-    "Number increased by 20% becomes 240. Original?",
-    ["180", "200", "220", "288"],
-    1
-  ],
-
-  [
-    "Key that uniquely identifies a table row?",
-    [
+    a: 1
+  },
+  {
+    q: "SQL function to count rows?",
+    o: ["SUM()", "COUNT()", "TOTAL()", "ROWS()"],
+    a: 1
+  },
+  {
+    q: "Ratio 2:3, total 50. Larger part?",
+    o: ["20", "25", "30", "35"],
+    a: 2
+  },
+  {
+    q: "A yes/no value is commonly a?",
+    o: ["Boolean", "Float", "Array", "Character"],
+    a: 0
+  },
+  {
+    q: "Median of 3,7,9,12,15?",
+    o: ["7", "9", "10", "12"],
+    a: 1
+  },
+  {
+    q: "SQL clause used for sorting?",
+    o: ["SORT", "ORDER BY", "GROUP", "ARRANGE"],
+    a: 1
+  },
+  {
+    q: "Number increased by 20% becomes 240. Original?",
+    o: ["180", "200", "220", "288"],
+    a: 1
+  },
+  {
+    q: "Key that uniquely identifies a table row?",
+    o: [
       "Foreign key",
       "Primary key",
       "Index only",
       "Composite value always"
     ],
-    1
-  ],
-
-  [
-    "Main purpose of a dashboard?",
-    [
+    a: 1
+  },
+  {
+    q: "Main purpose of a dashboard?",
+    o: [
       "Store passwords",
       "Present key metrics visually",
       "Compile code",
       "Create tables"
     ],
-    1
-  ],
-
-  [
-    "Python structure for key-value pairs?",
-    ["List", "Tuple", "Dictionary", "Set"],
-    2
-  ],
-
-  [
-    "3 red and 2 blue balls. Probability of red?",
-    ["2/5", "3/5", "1/2", "3/2"],
-    1
-  ],
-
-  [
-    "SQL keyword removing duplicate SELECT rows?",
-    ["UNIQUE", "DISTINCT", "DEDUP", "ONLY"],
-    1
-  ],
-
-  [
-    "15% of 400?",
-    ["40", "50", "60", "75"],
-    2
-  ],
-
-  [
-    "Classification accuracy is?",
-    [
+    a: 1
+  },
+  {
+    q: "Python structure for key-value pairs?",
+    o: ["List", "Tuple", "Dictionary", "Set"],
+    a: 2
+  },
+  {
+    q: "3 red and 2 blue balls. Probability of red?",
+    o: ["2/5", "3/5", "1/2", "3/2"],
+    a: 1
+  },
+  {
+    q: "SQL keyword removing duplicate SELECT rows?",
+    o: ["UNIQUE", "DISTINCT", "DEDUP", "ONLY"],
+    a: 1
+  },
+  {
+    q: "15% of 400?",
+    o: ["40", "50", "60", "75"],
+    a: 2
+  },
+  {
+    q: "Classification accuracy is?",
+    o: [
       "Correct/total",
       "Total/incorrect",
       "Mean features",
       "Maximum value"
     ],
-    0
-  ],
-
-  [
-    "Pandas command for first rows?",
-    ["df.start()", "df.head()", "df.first()", "df.top()"],
-    1
-  ],
-
-  [
-    "12 items cost ₹360. Cost of 5?",
-    ["₹120", "₹150", "₹180", "₹200"],
-    1
-  ]
-
-].map(x => ({
-  q: x[0],
-  o: x[1],
-  a: x[2]
-}));
+    a: 0
+  },
+  {
+    q: "Pandas command for first rows?",
+    o: [
+      "df.start()",
+      "df.head()",
+      "df.first()",
+      "df.top()"
+    ],
+    a: 1
+  },
+  {
+    q: "12 items cost ₹360. Cost of 5?",
+    o: ["₹120", "₹150", "₹180", "₹200"],
+    a: 1
+  }
+];
 
 // =====================================================
-// TEACHER AUTHENTICATION
+// TEACHER AUTH
 // =====================================================
 
-function teacher(req, res, next) {
+function requireTeacher(req, res, next) {
 
   if (
     req.session &&
@@ -315,16 +286,17 @@ function teacher(req, res, next) {
 
 function generateExamCode() {
 
-  let examCode;
+  let code;
 
   do {
-    examCode = crypto
+    code = crypto
       .randomBytes(3)
       .toString("hex")
       .toUpperCase();
-  } while (exams.has(examCode));
 
-  return examCode;
+  } while (exams.has(code));
+
+  return code;
 }
 
 // =====================================================
@@ -338,13 +310,10 @@ function publicStudent(student) {
     name: student.name,
     code: student.code,
     joinedAt: student.joinedAt,
-
     camera: student.camera,
     microphone: student.microphone,
-
     submitted: student.submitted,
     score: student.score,
-
     lastSnapshot: student.lastSnapshot
   };
 }
@@ -357,14 +326,14 @@ app.get("/api/health", (req, res) => {
 
   res.json({
     ok: true,
-    service: "Capgemini Round 1 Mock Test",
+    service: "Capgemini Mocktest Round 1",
     time: new Date().toISOString()
   });
 
 });
 
 // =====================================================
-// TEACHER SESSION CHECK
+// TEACHER SESSION
 // =====================================================
 
 app.get("/api/teacher/session", (req, res) => {
@@ -414,8 +383,7 @@ app.post("/api/teacher/login", (req, res) => {
       }
 
       return res.json({
-        ok: true,
-        message: "Teacher login successful"
+        ok: true
       });
 
     });
@@ -436,11 +404,9 @@ app.post("/api/teacher/logout", (req, res) => {
   req.session.destroy(err => {
 
     if (err) {
-
       return res.status(500).json({
         error: "Logout failed"
       });
-
     }
 
     res.clearCookie("connect.sid");
@@ -454,37 +420,27 @@ app.post("/api/teacher/logout", (req, res) => {
 });
 
 // =====================================================
-// GET ALL EXAMS
+// GET EXAMS
 // =====================================================
 
 app.get(
   "/api/exams",
-  teacher,
+  requireTeacher,
   (req, res) => {
 
     const result =
       [...exams.values()].map(exam => ({
-
         id: exam.id,
         code: exam.code,
         title: exam.title,
-
         duration: exam.duration,
-
-        questionCount:
-          exam.questions.length,
-
+        questionCount: exam.questions.length,
         active: exam.active,
-
         createdAt: exam.createdAt,
-
-        startedAt:
-          exam.startedAt || null
-
+        startedAt: exam.startedAt || null
       }));
 
     res.json(result);
-
   }
 );
 
@@ -496,7 +452,7 @@ app.get(
 
 app.post(
   "/api/exams",
-  teacher,
+  requireTeacher,
   (req, res) => {
 
     const title =
@@ -505,16 +461,19 @@ app.post(
         "Capgemini Round 1 Mock Test"
       ).trim();
 
-    const duration =
-      Math.max(
-        1,
-        Math.min(
-          300,
-          Number(
-            req.body?.duration || 120
-          )
-        )
+    let duration =
+      Number(
+        req.body?.duration || 120
       );
+
+    if (!Number.isFinite(duration)) {
+      duration = 120;
+    }
+
+    duration = Math.max(
+      1,
+      Math.min(300, duration)
+    );
 
     const now = Date.now();
 
@@ -528,18 +487,13 @@ app.post(
 
       duration,
 
-      questions: Q,
-
-      // ==========================================
-      // IMPORTANT CHANGE
-      // ==========================================
+      questions: QUESTIONS,
 
       active: true,
 
       createdAt: now,
 
       startedAt: now
-
     };
 
     exams.set(
@@ -547,7 +501,6 @@ app.post(
       exam
     );
 
-    // Tell connected clients
     io.emit(
       "exam-created",
       {
@@ -577,7 +530,6 @@ app.post(
         active: exam.active,
 
         startedAt: exam.startedAt
-
       }
 
     });
@@ -591,13 +543,13 @@ app.post(
 
 app.post(
   "/api/exams/:code/start",
-  teacher,
+  requireTeacher,
   (req, res) => {
 
     const code =
       String(
         req.params.code || ""
-      ).toUpperCase();
+      ).trim().toUpperCase();
 
     const exam =
       exams.get(code);
@@ -607,7 +559,6 @@ app.post(
       return res.status(404).json({
         error: "Exam not found"
       });
-
     }
 
     exam.active = true;
@@ -622,16 +573,10 @@ app.post(
     );
 
     return res.json({
-
       ok: true,
-
       code: exam.code,
-
       active: true,
-
-      startedAt:
-        exam.startedAt
-
+      startedAt: exam.startedAt
     });
 
   }
@@ -643,13 +588,13 @@ app.post(
 
 app.post(
   "/api/exams/:code/stop",
-  teacher,
+  requireTeacher,
   (req, res) => {
 
     const code =
       String(
         req.params.code || ""
-      ).toUpperCase();
+      ).trim().toUpperCase();
 
     const exam =
       exams.get(code);
@@ -659,7 +604,6 @@ app.post(
       return res.status(404).json({
         error: "Exam not found"
       });
-
     }
 
     exam.active = false;
@@ -672,20 +616,16 @@ app.post(
     );
 
     return res.json({
-
       ok: true,
-
       code: exam.code,
-
       active: false
-
     });
 
   }
 );
 
 // =====================================================
-// STUDENT GET EXAM
+// STUDENT EXAM DETAILS
 // =====================================================
 
 app.get(
@@ -695,7 +635,7 @@ app.get(
     const code =
       String(
         req.params.code || ""
-      ).toUpperCase();
+      ).trim().toUpperCase();
 
     const exam =
       exams.get(code);
@@ -705,7 +645,6 @@ app.get(
       return res.status(404).json({
         error: "Invalid exam code"
       });
-
     }
 
     if (!exam.active) {
@@ -713,7 +652,6 @@ app.get(
       return res.status(403).json({
         error: "Exam is not active"
       });
-
     }
 
     return res.json({
@@ -729,12 +667,11 @@ app.get(
 
       questions:
         exam.questions.map(
-          ({ q, o }) => ({
-            q,
-            o
+          question => ({
+            q: question.q,
+            o: question.o
           })
         )
-
     });
 
   }
@@ -759,6 +696,13 @@ app.post(
         "Student"
       ).trim().slice(0, 80);
 
+    if (!code) {
+
+      return res.status(400).json({
+        error: "Exam code is required"
+      });
+    }
+
     const exam =
       exams.get(code);
 
@@ -767,19 +711,13 @@ app.post(
       return res.status(404).json({
         error: "Invalid exam code"
       });
-
     }
-
-    // ==========================================
-    // EXAM MUST BE ACTIVE
-    // ==========================================
 
     if (!exam.active) {
 
       return res.status(403).json({
         error: "Exam is not active"
       });
-
     }
 
     const student = {
@@ -801,7 +739,6 @@ app.post(
       submitted: false,
 
       score: null
-
     };
 
     students.set(
@@ -809,7 +746,6 @@ app.post(
       student
     );
 
-    // Notify teacher dashboard
     io.emit(
       "student-update",
       publicStudent(student)
@@ -833,22 +769,21 @@ app.post(
 
       startedAt:
         exam.startedAt
-
     });
 
   }
 );
 
 // =====================================================
-// TEACHER GET STUDENTS
+// TEACHER STUDENTS
 // =====================================================
 
 app.get(
   "/api/teacher/students",
-  teacher,
+  requireTeacher,
   (req, res) => {
 
-    return res.json(
+    res.json(
       [...students.values()]
         .map(publicStudent)
     );
@@ -857,7 +792,7 @@ app.get(
 );
 
 // =====================================================
-// STUDENT CAMERA / MICROPHONE STATUS
+// STUDENT CAMERA / MIC STATUS
 // =====================================================
 
 app.post(
@@ -875,7 +810,6 @@ app.post(
       return res.status(404).json({
         error: "Student session not found"
       });
-
     }
 
     student.camera =
@@ -889,7 +823,7 @@ app.post(
       publicStudent(student)
     );
 
-    return res.json({
+    res.json({
       ok: true
     });
 
@@ -915,7 +849,6 @@ app.post(
       return res.status(404).json({
         error: "Student session not found"
       });
-
     }
 
     if (
@@ -925,7 +858,6 @@ app.post(
 
       student.lastSnapshot =
         req.body.image;
-
     }
 
     student.camera = true;
@@ -935,7 +867,7 @@ app.post(
       publicStudent(student)
     );
 
-    return res.json({
+    res.json({
       ok: true
     });
 
@@ -959,9 +891,8 @@ app.post(
     if (!student) {
 
       return res.status(404).json({
-        error: "Session not found"
+        error: "Student session not found"
       });
-
     }
 
     const exam =
@@ -972,7 +903,6 @@ app.post(
       return res.status(404).json({
         error: "Exam not found"
       });
-
     }
 
     if (student.submitted) {
@@ -987,32 +917,26 @@ app.post(
           exam.questions.length,
 
         alreadySubmitted: true
-
       });
-
     }
 
     const answers =
-      req.body?.answers || {};
+      req.body?.answers || [];
 
-    const score =
-      exam.questions.reduce(
-        (total, question, index) => {
+    let score = 0;
 
-          return (
-            total +
-            (
-              Number(
-                answers[index]
-              ) === question.a
-                ? 1
-                : 0
-            )
-          );
+    exam.questions.forEach(
+      (question, index) => {
 
-        },
-        0
-      );
+        if (
+          Number(answers[index]) ===
+          question.a
+        ) {
+          score++;
+        }
+
+      }
+    );
 
     student.submitted = true;
 
@@ -1031,7 +955,6 @@ app.post(
 
       total:
         exam.questions.length
-
     });
 
   }
@@ -1039,59 +962,78 @@ app.post(
 
 // =====================================================
 // TEACHER PAGE
-// ROOT
 // =====================================================
 
-app.get(
-  "/",
-  (req, res) => {
+app.get("/", (req, res) => {
 
-    res.sendFile(
-      path.join(
-        __dirname,
-        "teacher.html"
-      )
-    );
+  res.sendFile(
+    path.join(
+      __dirname,
+      "teacher.html"
+    )
+  );
 
-  }
-);
+});
 
-// =====================================================
-// TEACHER PAGE
-// /teacher
-// =====================================================
+app.get("/teacher", (req, res) => {
 
-app.get(
-  "/teacher",
-  (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      "teacher.html"
+    )
+  );
 
-    res.sendFile(
-      path.join(
-        __dirname,
-        "teacher.html"
-      )
-    );
-
-  }
-);
+});
 
 // =====================================================
 // STUDENT PAGE
+// IMPORTANT: NO PUBLIC FOLDER
 // =====================================================
 
-app.get(
-  "/student",
-  (req, res) => {
+app.get("/student", (req, res) => {
 
-    res.sendFile(
-      path.join(
-        __dirname,
-        "student.html"
-      )
-    );
+  res.sendFile(
+    path.join(
+      __dirname,
+      "student.html"
+    ),
+    err => {
 
-  }
-);
+      if (err) {
+
+        console.error(
+          "student.html error:",
+          err
+        );
+
+        if (!res.headersSent) {
+
+          res.status(404).send(
+            "student.html not found in repository root"
+          );
+        }
+      }
+
+    }
+  );
+
+});
+
+// Also support /student/
+//
+// This prevents problems when the URL has a trailing slash.
+
+app.get("/student/", (req, res) => {
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      "student.html"
+    )
+  );
+
+});
 
 // =====================================================
 // SOCKET.IO
@@ -1122,6 +1064,31 @@ io.on(
 );
 
 // =====================================================
+// 404 HANDLER
+// =====================================================
+
+app.use(
+  (req, res) => {
+
+    if (
+      req.path.startsWith("/api/")
+    ) {
+
+      return res.status(404).json({
+        error: "API route not found",
+        path: req.path
+      });
+
+    }
+
+    return res.status(404).send(
+      "Page not found"
+    );
+
+  }
+);
+
+// =====================================================
 // ERROR HANDLER
 // =====================================================
 
@@ -1133,6 +1100,10 @@ app.use(
       err
     );
 
+    if (res.headersSent) {
+      return next(err);
+    }
+
     res.status(500).json({
       error: "Internal server error"
     });
@@ -1141,7 +1112,7 @@ app.use(
 );
 
 // =====================================================
-// START SERVER
+// START
 // =====================================================
 
 server.listen(
@@ -1150,11 +1121,29 @@ server.listen(
   () => {
 
     console.log(
-      `Capgemini Round 1 server running on port ${PORT}`
+      "======================================"
     );
 
     console.log(
-      `Teacher username: ${TEACHER_USERNAME}`
+      "Capgemini Round 1 server running"
+    );
+
+    console.log(
+      "Port:",
+      PORT
+    );
+
+    console.log(
+      "Teacher:",
+      TEACHER_USERNAME
+    );
+
+    console.log(
+      "Student URL: /student"
+    );
+
+    console.log(
+      "======================================"
     );
 
   }
